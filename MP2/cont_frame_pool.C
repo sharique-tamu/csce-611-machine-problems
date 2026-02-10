@@ -165,9 +165,6 @@ void ContFramePool::set_state(unsigned long _frame_no, FrameState _state) {
 ContFramePool::ContFramePool(unsigned long _base_frame_no,
                              unsigned long _n_frames,
                              unsigned long _info_frame_no) {
-  // // TODO: IMPLEMENTATION NEEEDED!
-  // Console::puts("ContframePool::Constructor not implemented!\n");
-  // assert(false);
   // Bitmap must fit in a single frame!
   // dividing by 2 as 2 bits will be used per frame
   assert(_n_frames <= FRAME_SIZE * 8 / 2);
@@ -210,11 +207,7 @@ unsigned long ContFramePool::get_frames(unsigned int _n_frames) {
       }
     }
     if (found) {
-      set_state(start_frame, FrameState::HoS);
-      for (unsigned int i = 1; i < _n_frames; i++) {
-        set_state(start_frame + i, FrameState::Used);
-      }
-      nFreeFrames -= _n_frames;
+      mark_inaccessible(start_frame, _n_frames);
       return start_frame;
     }
   }
@@ -223,9 +216,12 @@ unsigned long ContFramePool::get_frames(unsigned int _n_frames) {
 
 void ContFramePool::mark_inaccessible(unsigned long _base_frame_no,
                                       unsigned long _n_frames) {
-  // TODO: IMPLEMENTATION NEEEDED!
-  Console::puts("ContframePool::mark_inaccessible not implemented!\n");
-  assert(false);
+
+  set_state(_base_frame_no, FrameState::HoS);
+  for (unsigned int i = 1; i < _n_frames; i++) {
+    set_state(_base_frame_no + i, FrameState::Used);
+  }
+  nFreeFrames -= _n_frames;
 }
 
 void ContFramePool::release_frames(unsigned long _first_frame_no) {

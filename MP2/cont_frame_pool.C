@@ -231,8 +231,10 @@ void ContFramePool::release_frames(unsigned long _first_frame_no) {
 }
 
 unsigned long ContFramePool::needed_info_frames(unsigned long _n_frames) {
-  // TODO: IMPLEMENTATION NEEEDED!
-  Console::puts("ContframePool::need_info_frames not implemented!\n");
-  assert(false);
-  return 0;
+  unsigned int bits_required = _n_frames * 2;
+  // TODO: Verify if FRAME_SIZE is in bytes, if not the following codes need
+  // correction.
+  unsigned int info_frames =
+      (bits_required + (FRAME_SIZE * 8) - 1) / (FRAME_SIZE * 8);
+  return info_frames;
 }

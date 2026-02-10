@@ -129,9 +129,34 @@
 ContFramePool::ContFramePool(unsigned long _base_frame_no,
                              unsigned long _n_frames,
                              unsigned long _info_frame_no) {
-  // TODO: IMPLEMENTATION NEEEDED!
-  Console::puts("ContframePool::Constructor not implemented!\n");
-  assert(false);
+  // // TODO: IMPLEMENTATION NEEEDED!
+  // Console::puts("ContframePool::Constructor not implemented!\n");
+  // assert(false);
+  // Bitmap must fit in a single frame!
+  // dividing by 2 as 2 bits will be used per frame
+  assert(_n_frames <= FRAME_SIZE * 8 / 2);
+
+  base_frame_no = _base_frame_no;
+  nframes = _n_frames;
+  nFreeFrames = _n_frames;
+  info_frame_no = _info_frame_no;
+
+  if (info_frame_no == 0) {
+    bitmap = (unsigned char *)(base_frame_no * FRAME_SIZE);
+  } else {
+    bitmap = (unsigned char *)(info_frame_no * FRAME_SIZE);
+  }
+
+  for (int fno = 0; fno < _n_frames; fno++) {
+    set_state(fno, FrameState::Free);
+  }
+
+  if (_info_frame_no == 0) {
+    set_state(0, FrameState::Used);
+    nFreeFrames--;
+  }
+
+  Console::puts("Frame Pool initialized\n");
 }
 
 unsigned long ContFramePool::get_frames(unsigned int _n_frames) {

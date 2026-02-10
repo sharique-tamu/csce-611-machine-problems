@@ -126,6 +126,41 @@
 /* METHODS FOR CLASS   C o n t F r a m e P o o l */
 /*--------------------------------------------------------------------------*/
 
+ContFramePool::FrameState ContFramePool::get_state(unsigned long _frame_no) {
+  unsigned int bitmap_index = _frame_no / 4;
+  unsigned int shift = 2 * (_frame_no % 4);
+  // unsigned char mask = 0x3 << shift;
+
+  switch ((bitmap[bitmap_index] >> shift) & 0x3) {
+  case 0:
+    return FrameState::Free;
+  case 1:
+    return FrameState::Used;
+  case 2:
+    return FrameState::HoS;
+  }
+  return FrameState::Free;
+}
+
+void ContFramePool::set_state(unsigned long _frame_no, FrameState _state) {
+  unsigned int bitmap_index = _frame_no / 4;
+  unsigned int shift = 2 * (_frame_no % 4);
+  unsigned char reset_mask = ~(0x3 << shift);
+
+  bitmap[bitmap_index] &= reset_mask;
+  switch (_state) {
+  case FrameState::Free:
+    // As I have already set 0 using the reset mask, nothing more is need to set
+    // it as free (enum value = 0).
+    break;
+  case FrameState::Used:
+    bitmap[bitmap_index] |= 0x1 << shift;
+    break;
+  case FrameState::HoS:
+    bitmap[bitmap_index] |= 0x2 << shift;
+    break;
+  }
+}
 ContFramePool::ContFramePool(unsigned long _base_frame_no,
                              unsigned long _n_frames,
                              unsigned long _info_frame_no) {

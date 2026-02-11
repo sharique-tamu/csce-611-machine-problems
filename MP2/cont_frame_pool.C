@@ -129,7 +129,6 @@ ContFramePool *ContFramePool::head = nullptr;
 ContFramePool::FrameState ContFramePool::get_state(unsigned long _frame_no) {
   unsigned int bitmap_index = _frame_no / 4;
   unsigned int shift = 2 * (_frame_no % 4);
-  // unsigned char mask = 0x3 << shift;
   unsigned char current_state = (bitmap[bitmap_index] >> shift) & 0x3;
   switch (current_state) {
   case 0:
@@ -168,6 +167,7 @@ ContFramePool::ContFramePool(unsigned long _base_frame_no,
   // Bitmap must fit in a single frame!
   // dividing by 2 as 2 bits will be used per frame
   assert(_n_frames <= FRAME_SIZE * 8 / 2);
+  assert(needed_info_frames(_n_frames) == 1);
 
   base_frame_no = _base_frame_no;
   nframes = _n_frames;
@@ -223,8 +223,6 @@ ContFramePool::ContFramePool(unsigned long _base_frame_no,
 }
 
 unsigned long ContFramePool::get_frames(unsigned int _n_frames) {
-  // This assertion does not guarantee that contiguous _n_frames are
-  // available.
   unsigned int start_frame = 0;
   while (start_frame + _n_frames - 1 < nframes) {
     bool found = true;
@@ -266,10 +264,10 @@ void ContFramePool::release_frames(unsigned long _first_frame_no) {
         }
       } else {
         // Frame is not a head of sequence
+        Console::puts(
+            "First Frame requested to release is not a Head of Sequence\n");
       }
       break;
-    } else {
-      // Frame does not belong to a frame pool.
     }
     tmp = tmp->next;
   }

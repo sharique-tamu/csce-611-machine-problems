@@ -171,7 +171,6 @@ ContFramePool::ContFramePool(unsigned long _base_frame_no,
 
   base_frame_no = _base_frame_no;
   nframes = _n_frames;
-  nFreeFrames = _n_frames;
   info_frame_no = _info_frame_no;
   prev = nullptr;
   next = nullptr;
@@ -218,7 +217,6 @@ ContFramePool::ContFramePool(unsigned long _base_frame_no,
 
   if (_info_frame_no == 0) {
     set_state(0, FrameState::HoS);
-    nFreeFrames--;
   }
 
   Console::puts("Frame Pool initialized\n");
@@ -227,7 +225,6 @@ ContFramePool::ContFramePool(unsigned long _base_frame_no,
 unsigned long ContFramePool::get_frames(unsigned int _n_frames) {
   // This assertion does not guarantee that contiguous _n_frames are
   // available.
-  assert(nFreeFrames >= _n_frames);
   unsigned int start_frame = 0;
   while (start_frame + _n_frames - 1 < nframes) {
     bool found = true;
@@ -253,7 +250,6 @@ void ContFramePool::mark_inaccessible(unsigned long _base_frame_no,
   for (unsigned int i = 1; i < _n_frames; i++) {
     set_state(_base_frame_no + i, FrameState::Used);
   }
-  nFreeFrames -= _n_frames;
 }
 
 void ContFramePool::release_frames(unsigned long _first_frame_no) {
@@ -263,10 +259,8 @@ void ContFramePool::release_frames(unsigned long _first_frame_no) {
       unsigned int rel_frame_no = _first_frame_no - tmp->base_frame_no;
       if (tmp->get_state(rel_frame_no) == FrameState::HoS) {
         tmp->set_state(rel_frame_no, FrameState::Free);
-        tmp->nFreeFrames++;
         unsigned int fno = rel_frame_no + 1;
         while (fno < tmp->nframes && tmp->get_state(fno) == FrameState::Used) {
-          tmp->nFreeFrames++;
           tmp->set_state(fno, FrameState::Free);
           fno++;
         }

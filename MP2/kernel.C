@@ -57,6 +57,7 @@ void test_max_space(ContFramePool *_pool, unsigned int max_frames);
 void test_multiple_allocations_and_contiguous_mem(ContFramePool *_pool,
                                                   unsigned int rem_frames,
                                                   unsigned long &start);
+void test_needed_info_frames(ContFramePool *_pool);
 /*--------------------------------------------------------------------------*/
 /* MAIN ENTRY INTO THE OS */
 /*--------------------------------------------------------------------------*/
@@ -106,6 +107,7 @@ int main() {
   test_max_space(&kernel_mem_pool, KERNEL_POOL_SIZE);
   unsigned long i = 0;
   test_multiple_allocations_and_contiguous_mem(&kernel_mem_pool, 511, i);
+  test_needed_info_frames(&kernel_mem_pool);
   /* -- NOW LOOP FOREVER */
   Console::puts("Testing is DONE. We will do nothing forever\n");
   Console::puts("Feel free to turn off the machine now.\n");
@@ -245,4 +247,10 @@ void test_multiple_allocations_and_contiguous_mem(ContFramePool *_pool,
         ; // We throw a fit.
     }
   }
+}
+// As I am using bitmap to store frame information, only 1 frame should be
+// needed for 32MB (max 64MB) space
+void test_needed_info_frames(ContFramePool *_pool) {
+  assert(_pool->needed_info_frames(512) == (unsigned long)1);
+  Console::puts("Info frames needed is 1\n");
 }

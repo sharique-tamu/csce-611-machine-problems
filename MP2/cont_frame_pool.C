@@ -217,7 +217,7 @@ ContFramePool::ContFramePool(unsigned long _base_frame_no,
   }
 
   if (_info_frame_no == 0) {
-    set_state(0, FrameState::Used);
+    set_state(0, FrameState::HoS);
     nFreeFrames--;
   }
 
@@ -240,7 +240,7 @@ unsigned long ContFramePool::get_frames(unsigned int _n_frames) {
     }
     if (found) {
       mark_inaccessible(start_frame, _n_frames);
-      return start_frame;
+      return start_frame + base_frame_no;
     }
   }
   return 0;

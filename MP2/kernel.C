@@ -53,7 +53,10 @@
 /*--------------------------------------------------------------------------*/
 
 void test_memory(ContFramePool *_pool, unsigned int _allocs_to_go);
-
+void test_max_space(ContFramePool *_pool, unsigned int max_frames);
+void test_multiple_allocations_and_contiguous_mem(ContFramePool *_pool,
+                                                  unsigned int rem_frames,
+                                                  unsigned long &start);
 /*--------------------------------------------------------------------------*/
 /* MAIN ENTRY INTO THE OS */
 /*--------------------------------------------------------------------------*/
@@ -98,7 +101,11 @@ int main() {
   test_memory(&kernel_mem_pool, N_TEST_ALLOCATIONS);
 
   /* ---- Add code here to test the frame pool implementation. */
-
+  /* Running it after test_memory also ensures that frames are being
+  freed, that is if get_frames actually allocates. */
+  test_max_space(&kernel_mem_pool, KERNEL_POOL_SIZE);
+  unsigned long i = 0;
+  test_multiple_allocations_and_contiguous_mem(&kernel_mem_pool, 511, i);
   /* -- NOW LOOP FOREVER */
   Console::puts("Testing is DONE. We will do nothing forever\n");
   Console::puts("Feel free to turn off the machine now.\n");
@@ -151,5 +158,91 @@ void test_memory(ContFramePool *_pool, unsigned int _allocs_to_go) {
     }
     ContFramePool::release_frames(
         frame); // We free the memory that we allocated above.
+  }
+}
+
+void test_max_space(ContFramePool *_pool, unsigned int max_frames) {
+  // Leaving out 1st frame that is used for storing the bitmap.
+  unsigned long n_frames = max_frames - 1;
+  unsigned long frame =
+      _pool->get_frames(n_frames); // we allocate the n_frames from the pool
+
+  Console::puts("All frames allocated.\n");
+  int *value_array =
+      (int *)(frame * (4 KB)); // we pick a unique number that we want to
+                               // write into the memory we just allocated
+  for (int i = 0; i < (1 KB) * n_frames;
+       i++) { // we write this value int the memory locations
+    value_array[i] = i;
+  }
+  for (int i = 0; i < (1 KB) * n_frames;
+       i++) { // We check the values written into the memory before we
+              // recursed
+    if (value_array[i] != i) { // If the value stored in the memory locations
+                               // is not the same that we wrote a few lines
+                               // above then somebody overwrote the memory.
+      Console::puts("MEMORY TEST FAILED. ERROR IN FRAME POOL\n");
+      Console::puts("i =");
+      Console::puti(i);
+      Console::puts("   v = ");
+      Console::puti(value_array[i]);
+      Console::puts("   n =");
+      Console::puti(i);
+      Console::puts("\n");
+      for (;;)
+        ; // We throw a fit.
+    }
+  }
+  ContFramePool::release_frames(
+      frame); // We free the memory that we allocated above.
+  Console::puts("All frames freed.\n");
+}
+
+/* Should probably split this into two functions
+ I now realise this function does the same as test_memory just it lets you
+define no. of frames instead of no. of allocations. */
+void test_multiple_allocations_and_contiguous_mem(ContFramePool *_pool,
+                                                  unsigned int rem_frames,
+                                                  unsigned long &start) {
+  Console::puts("alloc_to_go = ");
+  Console::puti(rem_frames);
+  Console::puts("\n");
+  if (rem_frames == 0)
+    return;
+  unsigned int n_frames;
+  unsigned int frame;
+  unsigned long cur_start = start;
+  if (rem_frames < 10) {
+    frame = _pool->get_frames(rem_frames);
+    n_frames = rem_frames;
+  } else {
+    frame = _pool->get_frames(10);
+    n_frames = 10;
+  }
+
+  unsigned int *value_array = (unsigned int *)(frame * (4 KB));
+  for (int j = 0; j < (1 KB) * n_frames; j++) {
+    value_array[j] = start++;
+  }
+  test_multiple_allocations_and_contiguous_mem(_pool, rem_frames - n_frames,
+                                               start);
+  for (int i = 0; i < (1 KB) * n_frames;
+       i++) { // We check the values written into the memory before we
+              // recursed
+    if (value_array[i] !=
+        cur_start++) { // If the value stored in the memory locations is not
+                       // the same that we wrote a few lines above then
+                       // somebody overwrote the memory.
+      Console::puts("MEMORY TEST FAILED. ERROR IN FRAME POOL\n");
+      Console::puts("i =");
+      Console::puti(i);
+      Console::puts("   v = ");
+      Console::puti(value_array[i]);
+      Console::puts("   n =");
+      Console::puti(cur_start - 1);
+      Console::puts("\n");
+      for (;;)
+        ; // We throw a fit.
+    }
   }
 }

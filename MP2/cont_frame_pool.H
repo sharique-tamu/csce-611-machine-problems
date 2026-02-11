@@ -42,6 +42,9 @@ class ContFramePool {
 
 private:
   /* -- DEFINE YOUR CONT FRAME POOL DATA STRUCTURE(s) HERE. */
+  static ContFramePool *head;
+  ContFramePool *prev;
+  ContFramePool *next;
 
   unsigned char *bitmap; // We implement the simple frame pool with a bitmap
   // TODO: think on whether nFreeFrames are contributing for managing frames.

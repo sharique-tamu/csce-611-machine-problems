@@ -120,7 +120,7 @@
 /* FORWARDS */
 /*--------------------------------------------------------------------------*/
 
-/* -- (none) -- */
+ContFramePool *ContFramePool::head = nullptr;
 
 /*--------------------------------------------------------------------------*/
 /* METHODS FOR CLASS   C o n t F r a m e P o o l */
@@ -173,6 +173,38 @@ ContFramePool::ContFramePool(unsigned long _base_frame_no,
   nframes = _n_frames;
   nFreeFrames = _n_frames;
   info_frame_no = _info_frame_no;
+  prev = nullptr;
+  next = nullptr;
+
+  if (!head) {
+    head = this;
+  } else {
+    ContFramePool *tmp = head;
+    while (tmp->base_frame_no < base_frame_no && tmp->next) {
+      tmp = tmp->next;
+    }
+    // insert after
+    if (tmp->base_frame_no < base_frame_no) {
+      prev = tmp;
+      next = tmp->next;
+      if (tmp->next) {
+        tmp->next->prev = this;
+      }
+      tmp->next = this;
+    } else {
+      // insert before
+      next = tmp;
+      if (tmp->prev) {
+        prev = tmp->prev;
+        tmp->prev->next = this;
+        tmp->prev = this;
+      } else {
+        // inserting before head
+        tmp->prev = this;
+        head = this;
+      }
+    }
+  }
 
   if (info_frame_no == 0) {
     bitmap = (unsigned char *)(base_frame_no * FRAME_SIZE);
@@ -225,9 +257,28 @@ void ContFramePool::mark_inaccessible(unsigned long _base_frame_no,
 }
 
 void ContFramePool::release_frames(unsigned long _first_frame_no) {
-  // TODO: IMPLEMENTATION NEEEDED!
-  Console::puts("ContframePool::release_frames not implemented!\n");
-  assert(false);
+  ContFramePool *tmp = head;
+  while (tmp && tmp->base_frame_no <= _first_frame_no) {
+    if (_first_frame_no <= tmp->base_frame_no + tmp->nframes - 1) {
+      unsigned int rel_frame_no = _first_frame_no - tmp->base_frame_no;
+      if (tmp->get_state(rel_frame_no) == FrameState::HoS) {
+        tmp->set_state(rel_frame_no, FrameState::Free);
+        tmp->nFreeFrames++;
+        unsigned int fno = rel_frame_no + 1;
+        while (fno < tmp->nframes && tmp->get_state(fno) == FrameState::Used) {
+          tmp->nFreeFrames++;
+          tmp->set_state(fno, FrameState::Free);
+          fno++;
+        }
+      } else {
+        // Frame is not a head of sequence
+      }
+      break;
+    } else {
+      // Frame does not belong to a frame pool.
+    }
+    tmp = tmp->next;
+  }
 }
 
 unsigned long ContFramePool::needed_info_frames(unsigned long _n_frames) {

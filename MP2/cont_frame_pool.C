@@ -126,6 +126,15 @@ ContFramePool *ContFramePool::head = nullptr;
 /* METHODS FOR CLASS   C o n t F r a m e P o o l */
 /*--------------------------------------------------------------------------*/
 
+/**
+ * @brief Returns the state of a frame within the pool.
+ *
+ * Extracts the 2-bit state entry from the bitmap corresponding
+ * to the given relative frame number.
+ *
+ * @param _frame_no Relative frame index within the pool.
+ * @return FrameState (Free, Used, or HoS).
+ */
 ContFramePool::FrameState ContFramePool::get_state(unsigned long _frame_no) {
   unsigned int bitmap_index = _frame_no / 4;
   unsigned int shift = 2 * (_frame_no % 4);
@@ -141,6 +150,15 @@ ContFramePool::FrameState ContFramePool::get_state(unsigned long _frame_no) {
   return FrameState::Free;
 }
 
+/**
+ * @brief Sets the state of a frame in the bitmap.
+ *
+ * Updates the 2-bit entry corresponding to the given relative
+ * frame number to Free, Used, or HoS.
+ *
+ * @param _frame_no Relative frame index within the pool.
+ * @param _state New state to assign.
+ */
 void ContFramePool::set_state(unsigned long _frame_no, FrameState _state) {
   unsigned int bitmap_index = _frame_no / 4;
   unsigned int shift = 2 * (_frame_no % 4);
@@ -161,6 +179,22 @@ void ContFramePool::set_state(unsigned long _frame_no, FrameState _state) {
   }
 }
 
+/**
+ * @brief Initializes a contiguous frame pool.
+ *
+ * Creates a frame pool starting at the given base frame number and
+ * containing nframes frames. The pool is inserted into a global
+ * doubly linked list sorted by base frame number.
+ *
+ * A bitmap is initialized to track frame states (Free, Used, HoS).
+ * The bitmap is stored either in an external info frame or in the
+ * first frame of the pool (which is then reserved).
+ *
+ * @param _base_frame_no Starting physical frame number of the pool.
+ * @param _n_frames Total number of frames in the pool.
+ * @param _info_frame_no Frame used to store the bitmap (0 if stored
+ *                       in the first frame of the pool).
+ */
 ContFramePool::ContFramePool(unsigned long _base_frame_no,
                              unsigned long _n_frames,
                              unsigned long _info_frame_no) {
@@ -222,6 +256,17 @@ ContFramePool::ContFramePool(unsigned long _base_frame_no,
   Console::puts("Frame Pool initialized\n");
 }
 
+/**
+ * @brief Allocates a contiguous sequence of frames.
+ *
+ * Searches the pool for _n_frames consecutive Free frames.
+ * If found, marks them allocated and returns the physical
+ * frame number of the first frame.
+ *
+ * @param _n_frames Number of contiguous frames requested.
+ * @return Physical frame number of first frame on success,
+ *         or 0 if allocation fails.
+ */
 unsigned long ContFramePool::get_frames(unsigned int _n_frames) {
   unsigned int start_frame = 0;
   while (start_frame + _n_frames - 1 < nframes) {
@@ -241,6 +286,15 @@ unsigned long ContFramePool::get_frames(unsigned int _n_frames) {
   return 0;
 }
 
+/**
+ * @brief Marks a contiguous block of frames as allocated.
+ *
+ * Sets the first frame as HoS (Head-of-Sequence) and the
+ * remaining frames as Used.
+ *
+ * @param _base_frame_no Relative starting frame index.
+ * @param _n_frames Number of frames in the block.
+ */
 void ContFramePool::mark_inaccessible(unsigned long _base_frame_no,
                                       unsigned long _n_frames) {
 
@@ -250,6 +304,15 @@ void ContFramePool::mark_inaccessible(unsigned long _base_frame_no,
   }
 }
 
+/**
+ * @brief Releases a previously allocated contiguous block.
+ *
+ * Locates the frame pool containing the given physical frame.
+ * If the frame is marked HoS, frees it and all subsequent
+ * Used frames in the sequence.
+ *
+ * @param _first_frame_no Physical frame number of the block start.
+ */
 void ContFramePool::release_frames(unsigned long _first_frame_no) {
   ContFramePool *tmp = head;
   while (tmp && tmp->base_frame_no <= _first_frame_no) {
@@ -273,6 +336,16 @@ void ContFramePool::release_frames(unsigned long _first_frame_no) {
   }
 }
 
+/**
+ * @brief Computes the number of frames required for the bitmap.
+ *
+ * Since each frame requires 2 bits, this function calculates
+ * how many frames are needed to store the bitmap entries
+ * for _n_frames frames.
+ *
+ * @param _n_frames Number of frames in the pool.
+ * @return Number of frames required to store the bitmap.
+ */
 unsigned long ContFramePool::needed_info_frames(unsigned long _n_frames) {
   unsigned int bits_required = _n_frames * 2;
   unsigned int info_frames =

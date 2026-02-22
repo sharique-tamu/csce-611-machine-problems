@@ -19,9 +19,7 @@ void PageTable::init_paging(ContFramePool *_kernel_mem_pool,
   kernel_mem_pool = _kernel_mem_pool;
   process_mem_pool = _process_mem_pool;
   shared_size = _shared_size;
-  // On page table initialization only one page is fetched for mapping shared
-  // size
-  assert(shared_size <= 4 MB);
+  assert(shared_size == 4 MB);
   Console::puts("Initialized Paging System\n");
 }
 
@@ -51,7 +49,7 @@ PageTable::PageTable() {
 }
 
 void PageTable::load() {
-  assert(false);
+  write_cr3((unsigned long)page_directory);
   Console::puts("Loaded page table\n");
 }
 

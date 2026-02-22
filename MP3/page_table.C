@@ -33,7 +33,8 @@ PageTable::PageTable() {
   unsigned long address = 0;
 
   unsigned long *page_table = (unsigned long *)(frame * 4 KB);
-  for (int i = 0; i < (shared_size / 4 KB); i++) {
+
+  for (int i = 0; i < shared_size / (4 KB); i++) {
     // Enabling R/W bit and Valid bit
     page_table[i] = address | 3;
     address += 4 KB;
